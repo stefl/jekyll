@@ -26,10 +26,28 @@ module Jekyll
         else response.error!
       end
     end
+    
+    def self.download_image(u)
+      path = 'images/%s' % u.split('/')[-1]
+	    url = URI.parse(u)
+	    found = false 
+	    until found 
+		    host, port = url.host, url.port if url.host && url.port 
+		    query = url.query ? url.query : ""
+		    req = Net::HTTP::Get.new(url.path + '?' + query)
+		    res = Net::HTTP.start(host, port) {|http|  http.request(req) } 
+		    res.header['location'] ? url = URI.parse(res.header['location']) : found = true 
+	    end 
+	    open(path, "wb") do |file|
+		    file.write(res.body)
+	    end
+	    path
+    end
 
     def self.process(email, pass, api_token, blog = 'primary')
       @email, @pass, @api_token = email, pass, api_token
       FileUtils.mkdir_p "_posts"
+      FileUtils.mkdir_p "_images"
 
       posts = JSON.parse(self.fetch("/api/v2/users/me/sites/#{blog}/posts?api_token=#{@api_token}").body)
       page = 1
@@ -50,6 +68,17 @@ module Jekyll
              'title' => title.to_s,
              'published' => published
            }.delete_if { |k,v| v.nil? || v == ''}.to_yaml
+  
+           post.media[2]['images'].each do |img|
+			      path = download_image(img['full']['url'])
+			      tag = "<img src=\"/%s\" alt=\"%s\" />" % [path, img['full']['caption']]
+			      puts tag
+			      begin
+				      content[/\[\[posterous-content:[^\]]*\]\]/] = tag
+			      rescue IndexError
+				      puts "weird stuff happening"
+			      end
+		      end
 
           # Write out the data and content to file
           File.open("_posts/#{name}", "w") do |f|
