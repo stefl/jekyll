@@ -29,19 +29,19 @@ module Jekyll
     
     def self.download_image(u)
       path = 'images/%s' % u.split('/')[-1]
-	    url = URI.parse(u)
-	    found = false 
-	    until found 
-		    host, port = url.host, url.port if url.host && url.port 
-		    query = url.query ? url.query : ""
-		    req = Net::HTTP::Get.new(url.path + '?' + query)
-		    res = Net::HTTP.start(host, port) {|http|  http.request(req) } 
-		    res.header['location'] ? url = URI.parse(res.header['location']) : found = true 
-	    end 
-	    open(path, "wb") do |file|
-		    file.write(res.body)
-	    end
-	    path
+      url = URI.parse(u)
+      found = false 
+      until found 
+        host, port = url.host, url.port if url.host && url.port 
+        query = url.query ? url.query : ""
+        req = Net::HTTP::Get.new(url.path + '?' + query)
+        res = Net::HTTP.start(host, port) {|http|  http.request(req) } 
+        res.header['location'] ? url = URI.parse(res.header['location']) : found = true 
+      end 
+      open(path, "wb") do |file|
+        file.write(res.body)
+      end
+      path
     end
 
     def self.process(email, pass, api_token, blog = 'primary')
@@ -69,18 +69,19 @@ module Jekyll
              'published' => published
            }.delete_if { |k,v| v.nil? || v == ''}.to_yaml
   
-           post["media"][2]['images'].each do |img|
-			      path = download_image(img['full']['url'])
-			      tag = "<img src=\"/%s\" alt=\"%s\" />" % [path, img['full']['caption']]
-			      puts tag
-			      begin
-				      content[/\[\[posterous-content:[^\]]*\]\]/] = tag
-			      rescue IndexError
-				      puts "weird stuff happening"
-			      end
-		      end
+          if post["media"] && post["media"].size >= 3 
+            post["media"][2]['images'].each do |img|
+              path = download_image(img['full']['url'])
+              tag = "<img src=\"/%s\" alt=\"%s\" />" % [path, img['full']['caption']]
+              puts tag
+              begin
+                content[/\[\[posterous-content:[^\]]*\]\]/] = tag
+              rescue IndexError
+                puts "weird stuff happening"
+              end
+            end
+          end
 
-          # Write out the data and content to file
           File.open("_posts/#{name}", "w") do |f|
             f.puts data
             f.puts "---"
