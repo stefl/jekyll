@@ -70,8 +70,8 @@ module Jekyll
            }.delete_if { |k,v| v.nil? || v == ''}.to_yaml
   
           puts post["media"].inspect
-          if post["media"] && post["media"].size >= 3 && !post["media"][2].blank?
-            post["media"][2]['images'].each do |img|
+          if post["media"] && post["media"]['images']
+            post["media"]['images'].each do |img|
               path = download_image(img['full']['url'])
               tag = "<img src=\"/%s\" alt=\"%s\" />" % [path, img['full']['caption']]
               puts tag
